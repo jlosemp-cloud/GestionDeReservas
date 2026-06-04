@@ -6,7 +6,7 @@ plugins {
 }
 
 kotlin {
-    jvm() // Estándar: usa src/jvmMain
+    jvm() // Usamos el target JVM estándar
     
     sourceSets {
         val jvmMain by getting {
@@ -34,6 +34,7 @@ compose.desktop {
             targetFormats(org.jetbrains.compose.desktop.application.dsl.TargetFormat.Exe)
             packageName = "GestionDeReservas"
             packageVersion = "1.0.0"
+            includeAllModules = true
         }
     }
 }

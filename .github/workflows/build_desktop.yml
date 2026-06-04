@@ -26,4 +26,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: GestionDeReservas-Windows
-          path: desktop/build/compose/binaries/main/exe/
+          path: desktop/build/compose/binaries/main/exe/*.exe
+          if-no-files-found: error
