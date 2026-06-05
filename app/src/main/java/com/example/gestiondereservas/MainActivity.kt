@@ -26,14 +26,14 @@ class MainActivity : ComponentActivity() {
 }
 
 class AndroidPlatformActions(private val context: Context) : PlatformActions {
+    override val isDesktop: Boolean = false // Indica que es móvil
+
     override fun makeCall(phone: String?) {
         if (phone.isNullOrEmpty()) return
         try {
             val intent = Intent(Intent.ACTION_DIAL).apply { data = Uri.parse("tel:$phone") }
             context.startActivity(intent)
-        } catch (e: Exception) {
-            showToast("Error al llamar")
-        }
+        } catch (e: Exception) { showToast("Error al llamar") }
     }
 
     override fun shareLink(message: String) {
@@ -41,7 +41,7 @@ class AndroidPlatformActions(private val context: Context) : PlatformActions {
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, message)
         }
-        context.startActivity(Intent.createChooser(intent, "Jesús, Peluquería de Autor"))
+        context.startActivity(Intent.createChooser(intent, "Jesús Peluquería"))
     }
 
     override fun sendWhatsApp(phone: String?, message: String) {
@@ -49,9 +49,7 @@ class AndroidPlatformActions(private val context: Context) : PlatformActions {
         try {
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$phone?text=${Uri.encode(message)}"))
             context.startActivity(intent)
-        } catch (e: Exception) {
-            showToast("Error al abrir WhatsApp")
-        }
+        } catch (e: Exception) { showToast("Error al abrir WhatsApp") }
     }
 
     override fun showToast(message: String) {

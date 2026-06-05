@@ -9,26 +9,25 @@ import java.net.URI
 import java.net.URLEncoder
 
 fun main() = application {
-    val windowState = rememberWindowState(width = 1024.dp, height = 768.dp)
+    val windowState = rememberWindowState(width = 1100.dp, height = 800.dp)
     
     Window(
         onCloseRequest = ::exitApplication,
-        title = "Gestión de Reservas - Desktop",
+        title = "Gestión de Reservas - Edición Profesional",
         state = windowState
     ) {
         val actions = object : PlatformActions {
-            override fun makeCall(phone: String?) = println("Llamando a: $phone")
-            override fun shareLink(message: String) = println("Compartiendo: $message")
+            override val isDesktop: Boolean = true // ACTIVA EL MODO ESCRITORIO
+            override fun makeCall(phone: String?) = println("Simulando llamada a: $phone")
+            override fun shareLink(message: String) = println("Enlace copiado")
             override fun sendWhatsApp(phone: String?, message: String) {
                 if (phone.isNullOrEmpty()) return
                 try {
                     val url = "https://wa.me/$phone?text=${URLEncoder.encode(message, "UTF-8")}"
-                    if (Desktop.isDesktopSupported()) {
-                        Desktop.getDesktop().browse(URI(url))
-                    }
+                    Desktop.getDesktop().browse(URI(url))
                 } catch (e: Exception) { e.printStackTrace() }
             }
-            override fun showToast(message: String) = println("Notificación: $message")
+            override fun showToast(message: String) = println("AVISO: $message")
         }
         MainNavigationContainer(actions = actions)
     }

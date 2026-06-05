@@ -1,4 +1,4 @@
-name: Build Windows Executable
+name: Build Windows Desktop
 on: [push, pull_request]
 
 jobs:
@@ -17,18 +17,20 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Package Windows EXE
-        run: ./gradlew :desktop:packageExe
+      - name: Build App and Installer
+        run: ./gradlew :desktop:packageExe :desktop:packageApp
         env:
           GRADLE_OPTS: -Dorg.gradle.java.home=${{ env.JAVA_HOME }}
 
-      - name: List and Find EXE (Debug)
-        run: Get-ChildItem -Path desktop/build/ -Filter *.exe -Recurse
+      - name: Zip Portable Version
+        run: Compress-Archive -Path desktop/build/compose/binaries/main/app/* -DestinationPath GestionDeReservas_Portable.zip
         shell: pwsh
 
-      - name: Upload Artifact
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: GestionDeReservas-Windows
-          path: desktop/build/compose/binaries/**/*.exe
+          path: |
+            desktop/build/compose/binaries/main/exe/*.exe
+            GestionDeReservas_Portable.zip
           if-no-files-found: error

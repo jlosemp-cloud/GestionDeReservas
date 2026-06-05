@@ -20,7 +20,8 @@ data class Customer(
     @SerialName("name") var name: String? = "",
     @SerialName("phone") var phone: String? = "",
     @SerialName("last_visit") var last_visit: String? = "Hoy",
-    @SerialName("technical_notes") var technical_notes: String? = ""
+    @SerialName("technical_notes") var technical_notes: String? = "",
+    @SerialName("habitual_treatment") var habitual_treatment: String? = "" // Nuevo campo
 )
 
 @Serializable
@@ -28,8 +29,8 @@ data class Visit(
     @SerialName("id") val id: String? = null,
     @SerialName("customer_id") val customer_id: String? = "",
     @SerialName("date") val date: String? = "",
-    @SerialName("treatment") val treatment: String? = "",
-    @SerialName("notes") val notes: String? = ""
+    @SerialName("treatment") var treatment: String? = "", // El tratamiento aplicado ese día
+    @SerialName("notes") var notes: String? = ""
 )
 
 @Serializable

@@ -21,6 +21,7 @@ val supabase = createSupabaseClient(
 }
 
 interface PlatformActions {
+    val isDesktop: Boolean
     fun makeCall(phone: String?)
     fun shareLink(message: String)
     fun sendWhatsApp(phone: String?, message: String)
