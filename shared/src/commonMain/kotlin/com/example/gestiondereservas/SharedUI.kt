@@ -46,11 +46,10 @@ fun MainNavigationContainer(actions: PlatformActions) {
 
     val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
     val tomorrow = today.plus(1, DateTimeUnit.DAY)
-    val tomorrowStr = tomorrow.toString()
 
     val pendingRemindersCount by remember {
         derivedStateOf {
-            appointments.count { it.date == tomorrowStr && !it.reminder_sent && it.client_name != "BLOQUEADO" }
+            appointments.count { it.date == tomorrow.toString() && !it.reminder_sent && it.client_name != "BLOQUEADO" }
         }
     }
 
@@ -66,9 +65,7 @@ fun MainNavigationContainer(actions: PlatformActions) {
             vacations.value = vRes.mapNotNull { it.date }.toSet()
             
             statusMsg = if (appointments.isEmpty() && customers.isEmpty()) "Base de datos vacía 📭" else "Conectado ✅"
-        } catch (e: Exception) {
-            statusMsg = "Error de conexión"
-        }
+        } catch (e: Exception) { statusMsg = "Error de conexión" }
     }
 
     LaunchedEffect(Unit) {
@@ -93,30 +90,20 @@ fun MainNavigationContainer(actions: PlatformActions) {
             ) {
                 val scrollState = rememberScrollState()
                 Column(Modifier.fillMaxSize().padding(24.dp).verticalScroll(scrollState)) {
-                    Text("Panel de Control", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color(0xFF1A237E))
+                    Text("Gestión Reservas", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Color(0xFF1A237E))
                     Spacer(Modifier.height(8.dp))
-                    Text(if(actions.isDesktop) "Edición Escritorio Portable" else "Guía de Ayuda", color = Color.Gray, fontSize = 14.sp)
+                    Text(if(actions.isDesktop) "Panel Profesional Desktop" else "Guía de Uso Móvil", color = Color.Gray, fontSize = 14.sp)
                     Spacer(Modifier.height(24.dp))
                     HorizontalDivider()
-                    Spacer(Modifier.height(16.dp))
                     
-                    HelpSection("📅 Mi Agenda", "Visualiza las citas del día actual de un vistazo.")
-                    if (!actions.isDesktop) {
-                        HelpSection("🔔 Avisos", "Recordatorios próximos y gestión de avisos por WhatsApp.")
-                    }
-                    HelpSection("📆 Gestión", "Calendario completo. Bloquea horas, marca festivos y gestiona el tiempo.")
-                    HelpSection("👥 Clientes", "Fichas técnicas, tratamiento habitual e historial de visitas.")
+                    HelpSection("📅 Mi Agenda", "Visualiza las citas de hoy de forma organizada.")
+                    if (!actions.isDesktop) HelpSection("🔔 Avisos", "Control de recordatorios por WhatsApp.")
+                    HelpSection("📆 Gestión Pro", "Calendario completo para bloqueos, festivos y registros históricos.")
+                    HelpSection("👥 Clientes", "Fichas técnicas con tratamiento habitual y registros de cada visita.")
                     
-                    Spacer(Modifier.height(40.dp))
-                    HorizontalDivider()
+                    Spacer(Modifier.weight(1f))
+                    Text("jlosemp(C) 2026", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, color = Color.Gray, fontSize = 12.sp)
                     Spacer(Modifier.height(16.dp))
-                    Text("jlosemp(C) 2026", 
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1A237E).copy(alpha = 0.6f),
-                        fontSize = 14.sp
-                    )
                 }
             }
         }
@@ -124,7 +111,8 @@ fun MainNavigationContainer(actions: PlatformActions) {
         Scaffold(
             bottomBar = {
                 NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {
-                    NavigationBarItem(selected = currentTab == 0, onClick = { currentTab = 0 }, icon = { Icon(Icons.Default.Today, null) }, label = { Text("Hoy") })
+                    NavigationBarItem(selected = currentTab == 0, onClick = { currentTab = 0 }, icon = { Icon(Icons.Default.Today, null) }, label = { Text("Agenda") })
+                    
                     if (!actions.isDesktop) {
                         NavigationBarItem(
                             selected = currentTab == 1, 
@@ -137,8 +125,12 @@ fun MainNavigationContainer(actions: PlatformActions) {
                             label = { Text("Avisos") }
                         )
                     }
-                    NavigationBarItem(selected = currentTab == 2, onClick = { currentTab = 2 }, icon = { Icon(Icons.Default.DateRange, null) }, label = { Text("Gestión") })
-                    NavigationBarItem(selected = currentTab == 3, onClick = { currentTab = 3 }, icon = { Icon(Icons.Default.People, null) }, label = { Text("Fichas") })
+                    
+                    val gIdx = if(actions.isDesktop) 1 else 2
+                    val cIdx = if(actions.isDesktop) 2 else 3
+                    
+                    NavigationBarItem(selected = currentTab == gIdx, onClick = { currentTab = gIdx }, icon = { Icon(Icons.Default.DateRange, null) }, label = { Text("Gestión") })
+                    NavigationBarItem(selected = currentTab == cIdx, onClick = { currentTab = cIdx }, icon = { Icon(Icons.Default.People, null) }, label = { Text("Clientes") })
                 }
             }
         ) { innerPadding ->
@@ -147,7 +139,7 @@ fun MainNavigationContainer(actions: PlatformActions) {
                     Row(Modifier.padding(8.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                         Text(statusMsg, fontSize = 11.sp, color = if (statusMsg.contains("Error")) Color.Red else Color.DarkGray)
                         Spacer(Modifier.width(8.dp))
-                        Text("Sincronizar", Modifier.clickable { scope.launch { loadData() } }, fontSize = 11.sp, color = Color(0xFF1A237E), fontWeight = FontWeight.Bold)
+                        Text("Reintentar", Modifier.clickable { scope.launch { loadData() } }, fontSize = 11.sp, color = Color(0xFF1A237E), fontWeight = FontWeight.Bold)
                     }
                 }
 
@@ -155,11 +147,14 @@ fun MainNavigationContainer(actions: PlatformActions) {
                     if (isLoading) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Color(0xFF1A237E)) }
                     } else {
+                        val gIdx = if(actions.isDesktop) 1 else 2
+                        val cIdx = if(actions.isDesktop) 2 else 3
+                        
                         when (currentTab) {
                             0 -> AgendaScreen(appointments, actions, onOpenDrawer = { scope.launch { drawerState.open() } })
-                            1 -> if(!actions.isDesktop) UpcomingAppointmentsScreen(appointments, actions, onRefresh = { scope.launch { loadData() } }, onOpenDrawer = { scope.launch { drawerState.open() } }) else currentTab = 0
-                            2 -> CalendarManagementScreen(vacations, appointments, actions, onRefresh = { scope.launch { loadData() } }, onOpenDrawer = { scope.launch { drawerState.open() } })
-                            3 -> CustomerDatabaseScreen(customers, appointments, actions, onRefresh = { scope.launch { loadData() } }, onOpenDrawer = { scope.launch { drawerState.open() } })
+                            gIdx -> CalendarManagementScreen(vacations, appointments, actions, onRefresh = { scope.launch { loadData() } }, onOpenDrawer = { scope.launch { drawerState.open() } })
+                            cIdx -> CustomerDatabaseScreen(customers, appointments, actions, onRefresh = { scope.launch { loadData() } }, onOpenDrawer = { scope.launch { drawerState.open() } })
+                            else -> if(!actions.isDesktop && currentTab == 1) UpcomingAppointmentsScreen(appointments, actions, onRefresh = { scope.launch { loadData() } }, onOpenDrawer = { scope.launch { drawerState.open() } })
                         }
                     }
                 }
@@ -172,94 +167,44 @@ fun MainNavigationContainer(actions: PlatformActions) {
 fun HelpSection(title: String, text: String) {
     Column(Modifier.padding(vertical = 10.dp)) {
         Text(title, fontWeight = FontWeight.Bold, color = Color(0xFF311B92), fontSize = 16.sp)
-        Spacer(Modifier.height(4.dp))
         Text(text, color = Color.DarkGray, fontSize = 14.sp, lineHeight = 20.sp)
     }
 }
 
 @Composable
 fun HeaderPremium(title: String, subtitle: String, actions: PlatformActions, onMenuClick: (() -> Unit)? = null) {
-    Box(Modifier.fillMaxWidth().height(140.dp).background(Brush.verticalGradient(listOf(Color(0xFF1A237E), Color(0xFF311B92)))).padding(24.dp)) { 
+    Box(Modifier.fillMaxWidth().height(120.dp).background(Brush.verticalGradient(listOf(Color(0xFF1A237E), Color(0xFF311B92)))).padding(24.dp)) { 
         Column(Modifier.align(Alignment.BottomStart)) { 
             Text(title, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
             Text(subtitle, color = Color.White.copy(0.7f)) 
         } 
-        Row(Modifier.align(Alignment.TopEnd), verticalAlignment = Alignment.CenterVertically) {
-            if (!actions.isDesktop) {
-                IconButton(onClick = { actions.shareLink(MI_WEB_RESERVAS) }, Modifier.background(Color.White.copy(0.2f), CircleShape)) { Icon(Icons.Default.Share, null, tint = Color.White) }
-                Spacer(Modifier.width(8.dp))
-            }
-            if (onMenuClick != null) {
-                IconButton(onClick = onMenuClick, Modifier.background(Color.White.copy(0.2f), CircleShape)) { Icon(Icons.Default.Menu, null, tint = Color.White) }
-            }
+        if (onMenuClick != null) {
+            IconButton(onClick = onMenuClick, Modifier.align(Alignment.TopEnd).background(Color.White.copy(0.2f), CircleShape)) { Icon(Icons.Default.Menu, null, tint = Color.White) }
         }
     }
 }
 
 @Composable
 fun AgendaScreen(appointments: SnapshotStateList<Appointment>, actions: PlatformActions, onOpenDrawer: () -> Unit) {
-    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
-    val todayAppointments = appointments.filter { (it.date ?: "") == today && it.client_name != "BLOQUEADO" }.sortedBy { it.time ?: "" }
+    val todayStr = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
+    val todayAppointments = appointments.filter { it.date == todayStr && it.client_name != "BLOQUEADO" }.sortedBy { it.time ?: "" }
 
     Column(Modifier.fillMaxSize().background(Color(0xFFF8F9FB))) {
         HeaderPremium("Mi Agenda", "Citas de hoy", actions, onMenuClick = onOpenDrawer)
         LazyColumn(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            item { Text("Agenda para hoy", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF1A237E)) }
+            item { Text("Agenda de trabajo", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF1A237E)) }
             if (todayAppointments.isEmpty()) {
                 item { Text("Sin citas para hoy", Modifier.fillMaxWidth().padding(top = 40.dp), textAlign = TextAlign.Center, color = Color.Gray) }
             }
             items(todayAppointments) { appt ->
-                AppointmentCard(appt, actions)
-            }
-        }
-    }
-}
-
-@Composable
-fun AppointmentCard(appt: Appointment, actions: PlatformActions) {
-    Surface(shape = RoundedCornerShape(20.dp), shadowElevation = 2.dp, border = BorderStroke(1.dp, Color(0xFFF0F0F0))) {
-        Row(Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(appt.time ?: "", fontWeight = FontWeight.Bold, color = Color(0xFF1A237E), fontSize = 18.sp, modifier = Modifier.width(65.dp))
-            Column(Modifier.weight(1f)) {
-                Text(appt.client_name ?: "", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Text(appt.service ?: "", color = Color.Gray, fontSize = 13.sp)
-            }
-            if (!actions.isDesktop) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { actions.makeCall(appt.phone) }, Modifier.background(Color(0xFFE8F5E9), CircleShape).size(36.dp)) { Icon(Icons.Default.Call, null, tint = Color(0xFF4CAF50), modifier = Modifier.size(18.dp)) }
-                    Spacer(Modifier.width(8.dp))
-                    IconButton(onClick = { actions.sendWhatsApp(appt.phone, "Hola ${appt.client_name}, te recordamos tu cita...") }, Modifier.background(Color(0xFFDCF8C6), CircleShape).size(36.dp)) { Icon(Icons.AutoMirrored.Filled.Chat, null, tint = Color(0xFF25D366), modifier = Modifier.size(18.dp)) }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun UpcomingAppointmentsScreen(appointments: List<Appointment>, actions: PlatformActions, onRefresh: () -> Unit, onOpenDrawer: () -> Unit) {
-    val scope = rememberCoroutineScope()
-    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-    val tomorrow = today.plus(1, DateTimeUnit.DAY)
-    
-    val futureAppointments = appointments.filter { 
-        val dateStr = it.date ?: ""
-        val date = try { LocalDate.parse(dateStr) } catch(e:Exception) { null }
-        date != null && (date >= today) && it.client_name != "BLOQUEADO"
-    }.sortedWith(compareBy({ it.date ?: "" }, { it.time ?: "" }))
-
-    val groupedByDate = futureAppointments.groupBy { it.date }
-
-    Column(Modifier.fillMaxSize().background(Color(0xFFF8F9FB))) {
-        HeaderPremium("Próximos Avisos", "Recordatorios de citas", actions, onMenuClick = onOpenDrawer)
-        LazyColumn(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            groupedByDate.forEach { (date, appts) ->
-                item {
-                    val isTomorrow = (date ?: "") == tomorrow.toString()
-                    val formattedDate = if ((date ?: "") == today.toString()) "Hoy" else if (isTomorrow) "MAÑANA (Avisar 🔔)" else (date ?: "")
-                    Text((formattedDate ?: "").uppercase(), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (isTomorrow) Color(0xFFE91E63) else Color.Gray, modifier = Modifier.padding(start = 4.dp, bottom = 4.dp))
-                }
-                items(appts) { appt ->
-                    AppointmentCard(appt, actions)
+                Surface(shape = RoundedCornerShape(20.dp), border = BorderStroke(1.dp, Color(0xFFF0F0F0)), shadowElevation = 2.dp) {
+                    Row(Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(appt.time ?: "", fontWeight = FontWeight.Bold, color = Color(0xFF1A237E), fontSize = 20.sp, modifier = Modifier.width(70.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(appt.client_name ?: "", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                            Text(appt.service ?: "", color = Color.Gray, fontSize = 14.sp)
+                        }
+                    }
                 }
             }
         }
@@ -272,58 +217,37 @@ fun CalendarManagementScreen(vacations: MutableState<Set<String>>, appointments:
     var selectedDate by remember { mutableStateOf(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date) }
     var currentMonth by remember { mutableStateOf(selectedDate.month) }
     var currentYear by remember { mutableIntStateOf(selectedDate.year) }
-    
     var showBlockDialog by remember { mutableStateOf(false) }
     var showAddApptDialog by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().background(Color(0xFFF8F9FB))) {
-        HeaderPremium("Gestión de Días", "Calendario y bloqueos", actions, onMenuClick = onOpenDrawer)
-        
+        HeaderPremium("Gestión de Días", "Calendario y Registros", actions, onMenuClick = onOpenDrawer)
         Row(Modifier.fillMaxSize().padding(16.dp)) {
-            // Columna Izquierda: Calendario (Se potencia en Desktop)
+            // Calendario (Potenciado en Desktop)
             Column(Modifier.weight(if(actions.isDesktop) 1.2f else 1f)) {
-                CalendarGrid(
-                    year = currentYear,
-                    month = currentMonth,
-                    selectedDate = selectedDate,
-                    vacations = vacations.value,
-                    appointments = appointments,
-                    onMonthChange = { m, y -> currentMonth = m; currentYear = y },
-                    onDateSelect = { selectedDate = it }
-                )
+                CalendarGrid(currentYear, currentMonth, selectedDate, vacations.value, appointments, 
+                    onMonthChange = { m, y -> currentMonth = m; currentYear = y }, onDateSelect = { selectedDate = it })
                 
                 Spacer(Modifier.height(16.dp))
-                
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text(selectedDate.toString(), fontWeight = FontWeight.Bold, color = Color(0xFF1A237E), fontSize = if(actions.isDesktop) 20.sp else 16.sp)
+                    Text(selectedDate.toString(), fontWeight = FontWeight.Bold, color = Color(0xFF1A237E), fontSize = 18.sp)
                     Row {
-                        Button(onClick = {
-                            val dateStr = selectedDate.toString()
-                            scope.launch {
-                                try {
-                                    if (vacations.value.contains(dateStr)) { supabase.from("vacations").delete { filter { eq("date", dateStr) } } }
-                                    else { supabase.from("vacations").insert(Vacation(dateStr)) }
-                                    onRefresh()
-                                } catch (e: Exception) { }
-                            }
-                        }, colors = ButtonDefaults.buttonColors(containerColor = if (vacations.value.contains(selectedDate.toString())) Color.Gray else Color(0xFFE91E63)), shape = RoundedCornerShape(12.dp)) { Text(if (vacations.value.contains(selectedDate.toString())) "Quitar" else "Festivo", fontSize = 11.sp) }
+                        Button(onClick = { scope.launch { try { if (vacations.value.contains(selectedDate.toString())) supabase.from("vacations").delete { filter { eq("date", selectedDate.toString()) } } else supabase.from("vacations").insert(Vacation(selectedDate.toString())); onRefresh() } catch (e: Exception) {} } }, colors = ButtonDefaults.buttonColors(containerColor = if (vacations.value.contains(selectedDate.toString())) Color.Gray else Color(0xFFE91E63)), shape = RoundedCornerShape(8.dp)) { Text("Festivo", fontSize = 10.sp) }
                         Spacer(Modifier.width(4.dp))
-                        Button(onClick = { showAddApptDialog = true }, shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00BFA5))) { Text("Cita", fontSize = 11.sp) }
+                        Button(onClick = { showAddApptDialog = true }, shape = RoundedCornerShape(8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00BFA5))) { Text("Cita", fontSize = 10.sp) }
                         Spacer(Modifier.width(4.dp))
-                        Button(onClick = { showBlockDialog = true }, shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A237E))) { Text("Bloq.", fontSize = 11.sp) }
+                        Button(onClick = { showBlockDialog = true }, shape = RoundedCornerShape(8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A237E))) { Text("Bloq", fontSize = 10.sp) }
                     }
                 }
             }
 
             if (actions.isDesktop) {
                 Spacer(Modifier.width(24.dp))
-                // Columna Derecha: Detalle del día (Solo Desktop)
                 Column(Modifier.weight(0.8f)) {
-                    Text("Citas para el día", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF1A237E))
-                    Spacer(Modifier.height(8.dp))
-                    val dayData = appointments.filter { (it.date ?: "") == selectedDate.toString() }.sortedBy { it.time ?: "" }
-                    LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (dayData.isEmpty()) item { Text("Sin citas ni bloqueos", color = Color.LightGray, modifier = Modifier.fillMaxWidth().padding(top = 20.dp), textAlign = TextAlign.Center) }
+                    Text("Detalle del día", fontWeight = FontWeight.Bold, color = Color(0xFF1A237E), fontSize = 15.sp)
+                    val dayData = appointments.filter { it.date == selectedDate.toString() }.sortedBy { it.time ?: "" }
+                    LazyColumn(Modifier.fillMaxSize().padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (dayData.isEmpty()) item { Text("Día sin citas ni bloqueos", color = Color.LightGray, modifier = Modifier.fillMaxWidth().padding(top = 20.dp), textAlign = TextAlign.Center) }
                         items(dayData) { item ->
                             val isBlock = item.client_name == "BLOQUEADO"
                             Surface(color = if (isBlock) Color(0xFFFFEBEE) else Color.White, shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, Color(0xFFEEEEEE))) {
@@ -339,78 +263,46 @@ fun CalendarManagementScreen(vacations: MutableState<Set<String>>, appointments:
             }
         }
     }
-    
-    // Para móvil, el detalle sale debajo si no es Desktop
-    if (!actions.isDesktop) {
-        // ... Lógica para mostrar la lista debajo ...
-    }
-
-    if (showBlockDialog) { BlockSlotsDialog(onDismiss = { showBlockDialog = false }, onConfirm = { time -> scope.launch { try { supabase.from("appointments").insert(Appointment(date = selectedDate.toString(), time = time, client_name = "BLOQUEADO", service = "BLOQUEO", phone = "000")); onRefresh() } catch (e: Exception) { } } }) }
-    if (showAddApptDialog) { ManualAppointmentDialog(selectedDate.toString(), onDismiss = { showAddApptDialog = false }, onConfirm = { appt -> scope.launch { try { supabase.from("appointments").insert(appt); onRefresh() } catch (e: Exception) { } } }) }
+    if (showBlockDialog) BlockSlotsDialog(onDismiss = { showBlockDialog = false }, onConfirm = { t -> scope.launch { try { supabase.from("appointments").insert(Appointment(date = selectedDate.toString(), time = t, client_name = "BLOQUEADO", service = "BLOQUEO")); onRefresh() } catch(e: Exception){} } })
+    if (showAddApptDialog) ManualAppointmentDialog(selectedDate.toString(), onDismiss = { showAddApptDialog = false }, onConfirm = { a -> scope.launch { try { supabase.from("appointments").insert(a); onRefresh() } catch(e: Exception){} } })
 }
 
 @Composable
 fun CalendarGrid(year: Int, month: Month, selectedDate: LocalDate, vacations: Set<String>, appointments: List<Appointment>, onMonthChange: (Month, Int) -> Unit, onDateSelect: (LocalDate) -> Unit) {
-    val firstDayOfMonth = LocalDate(year, month, 1)
-    val daysInMonth = getDaysInMonth(year, month)
-    val paddingDays = if (firstDayOfMonth.dayOfWeek.isoDayNumber == 7) 6 else firstDayOfMonth.dayOfWeek.isoDayNumber - 1
+    val monthName = when(month) { Month.JANUARY -> "Enero"; Month.FEBRUARY -> "Febrero"; Month.MARCH -> "Marzo"; Month.APRIL -> "Abril"; Month.MAY -> "Mayo"; Month.JUNE -> "Junio"; Month.JULY -> "Julio"; Month.AUGUST -> "Agosto"; Month.SEPTEMBER -> "Septiembre"; Month.OCTOBER -> "Octubre"; Month.NOVEMBER -> "Noviembre"; Month.DECEMBER -> "Diciembre"; else -> month.name }
+    val firstDay = LocalDate(year, month, 1)
+    val daysInMonth = when(month) { Month.FEBRUARY -> if((year%4==0 && year%100!=0)||year%400==0) 29 else 28; Month.APRIL, Month.JUNE, Month.SEPTEMBER, Month.NOVEMBER -> 30; else -> 31 }
+    val padding = if (firstDay.dayOfWeek.value == 7) 6 else firstDay.dayOfWeek.value - 1
 
-    Column {
+    Column(Modifier.background(Color.White, RoundedCornerShape(16.dp)).padding(16.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = {
-                val prev = if (month == Month.JANUARY) Month.DECEMBER else Month.values()[month.ordinal - 1]
-                val y = if (month == Month.JANUARY) year - 1 else year
-                onMonthChange(prev, y)
-            }) { Icon(Icons.Default.ChevronLeft, null) }
-            Text("${month.name} $year", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            IconButton(onClick = {
-                val next = if (month == Month.DECEMBER) Month.JANUARY else Month.values()[month.ordinal + 1]
-                val y = if (month == Month.DECEMBER) year + 1 else year
-                onMonthChange(next, y)
-            }) { Icon(Icons.Default.ChevronRight, null) }
+            IconButton(onClick = { val pM = if(month == Month.JANUARY) Month.DECEMBER else Month.values()[month.ordinal-1]; val pY = if(month == Month.JANUARY) year-1 else year; onMonthChange(pM, pY) }) { Icon(Icons.Default.ChevronLeft, null) }
+            Text("$monthName $year", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color(0xFF1A237E))
+            IconButton(onClick = { val nM = if(month == Month.DECEMBER) Month.JANUARY else Month.values()[month.ordinal+1]; val nY = if(month == Month.DECEMBER) year+1 else year; onMonthChange(nM, nY) }) { Icon(Icons.Default.ChevronRight, null) }
         }
-        
-        Row(Modifier.fillMaxWidth()) {
-            listOf("L", "M", "X", "J", "V", "S", "D").forEach { 
-                Text(it, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = Color.Gray, fontSize = 12.sp)
-            }
+        Row(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+            listOf("L","M","X","J","V","S","D").forEach { Text(it, Modifier.weight(1f), textAlign = TextAlign.Center, fontWeight = FontWeight.Bold, color = Color.Gray, fontSize = 12.sp) }
         }
-        
-        val rows = (daysInMonth + paddingDays + 6) / 7
-        for (row in 0 until rows) {
+        val rows = (daysInMonth + padding + 6) / 7
+        for (r in 0 until rows) {
             Row(Modifier.fillMaxWidth()) {
-                for (col in 0 until 7) {
-                    val dayIndex = row * 7 + col - paddingDays + 1
-                    if (dayIndex in 1..daysInMonth) {
-                        val date = LocalDate(year, month, dayIndex)
-                        val isSelected = date == selectedDate
-                        val isVacation = vacations.contains(date.toString()) || date.dayOfWeek == DayOfWeek.SUNDAY
+                for (c in 0 until 7) {
+                    val day = r * 7 + c - padding + 1
+                    if (day in 1..daysInMonth) {
+                        val date = LocalDate(year, month, day)
+                        val isSel = date == selectedDate
+                        val isVac = vacations.contains(date.toString()) || date.dayOfWeek == DayOfWeek.SUNDAY
                         val hasAppts = appointments.any { it.date == date.toString() && it.client_name != "BLOQUEADO" }
-                        
-                        Box(
-                            Modifier.weight(1f).aspectRatio(1f).padding(2.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (isSelected) Color(0xFF1A237E) else if (isVacation) Color(0xFFFFEBEE) else if (hasAppts) Color(0xFFE0F2F1) else Color.Transparent)
-                                .clickable { onDateSelect(date) },
-                            contentAlignment = Alignment.Center
-                        ) {
+                        Box(Modifier.weight(1f).aspectRatio(1f).padding(2.dp).clip(RoundedCornerShape(8.dp)).background(if(isSel) Color(0xFF1A237E) else if(isVac) Color(0xFFFFEBEE) else if(hasAppts) Color(0xFFE0F2F1) else Color.Transparent).clickable { onDateSelect(date) }, contentAlignment = Alignment.Center) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(dayIndex.toString(), color = if (isSelected) Color.White else if (isVacation) Color.Red else Color.Black, fontWeight = if(isSelected) FontWeight.Bold else FontWeight.Normal)
-                                if (hasAppts && !isSelected) Box(Modifier.size(4.dp).background(Color(0xFF00BFA5), CircleShape))
+                                Text(day.toString(), color = if(isSel) Color.White else if(isVac) Color.Red else Color.Black, fontWeight = if(isSel) FontWeight.Bold else FontWeight.Normal)
+                                if (hasAppts && !isSel) Box(Modifier.size(4.dp).background(Color(0xFF00BFA5), CircleShape))
                             }
                         }
-                    } else { Spacer(Modifier.weight(1f).aspectRatio(1f)) }
+                    } else Spacer(Modifier.weight(1f).aspectRatio(1f))
                 }
             }
         }
-    }
-}
-
-fun getDaysInMonth(year: Int, month: Month): Int {
-    return when (month) {
-        Month.FEBRUARY -> if ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)) 29 else 28
-        Month.APRIL, Month.JUNE, Month.SEPTEMBER, Month.NOVEMBER -> 30
-        else -> 31
     }
 }
 
@@ -418,67 +310,53 @@ fun getDaysInMonth(year: Int, month: Month): Int {
 fun CustomerDatabaseScreen(customers: SnapshotStateList<Customer>, appointments: List<Appointment>, actions: PlatformActions, onRefresh: () -> Unit, onOpenDrawer: () -> Unit) {
     val scope = rememberCoroutineScope()
     var q by remember { mutableStateOf("") }
-    var selectedCustomer by remember { mutableStateOf<Customer?>(null) }
-    var showEditDialog by remember { mutableStateOf(false) }
+    var selectedC by remember { mutableStateOf<Customer?>(null) }
+    var showEdit by remember { mutableStateOf(false) }
 
     Scaffold(floatingActionButton = { 
-        FloatingActionButton(onClick = { selectedCustomer = null; showEditDialog = true }, containerColor = Color(0xFF1A237E), contentColor = Color.White) { Icon(Icons.Default.Add, null) }
+        FloatingActionButton(onClick = { selectedC = null; showEdit = true }, containerColor = Color(0xFF1A237E), contentColor = Color.White) { Icon(Icons.Default.Add, null) }
     }) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).background(Color(0xFFF8F9FB))) {
             HeaderPremium("Mis Clientes", "${customers.size} registrados", actions, onMenuClick = onOpenDrawer)
-            OutlinedTextField(q, { q = it }, Modifier.fillMaxWidth().padding(16.dp), placeholder = { Text("Buscar por nombre...") }, shape = RoundedCornerShape(16.dp), leadingIcon = { Icon(Icons.Default.Search, null) })
+            OutlinedTextField(q, { q = it }, Modifier.fillMaxWidth().padding(16.dp), placeholder = { Text("Buscar cliente...") }, shape = RoundedCornerShape(12.dp), leadingIcon = { Icon(Icons.Default.Search, null) })
             LazyColumn(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(customers.filter { (it.name ?: "").contains(q, true) }) { c -> 
-                    CustomerCard(c, actions, onClick = { selectedCustomer = c; showEditDialog = true }) 
+                    Card(Modifier.fillMaxWidth().clickable { selectedC = c; showEdit = true }, colors = CardDefaults.cardColors(containerColor = Color.White), border = BorderStroke(1.dp, Color(0xFFEEEEEE))) {
+                        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.size(40.dp).background(Color(0xFF1A237E), CircleShape), contentAlignment = Alignment.Center) { Text((c.name ?: "S").take(1).uppercase(), color = Color.White) }
+                            Spacer(Modifier.width(12.dp))
+                            Column(Modifier.weight(1f)) { Text(c.name ?: "Sin nombre", fontWeight = FontWeight.Bold); Text(c.phone ?: "", fontSize = 12.sp, color = Color.Gray) }
+                        }
+                    }
                 }
             }
         }
     }
-    if (showEditDialog) { 
-        CustomerEditDialog(customer = selectedCustomer, actions = actions, onDismiss = { showEditDialog = false }, 
-            onConfirm = { updated -> scope.launch { try { if (updated.id == null) supabase.from("customers").insert(updated) else supabase.from("customers").update(updated) { filter { eq("id", updated.id ?: "") } }; onRefresh(); showEditDialog = false } catch (e: Exception) { } } }, 
-            onDelete = { toDelete -> scope.launch { try { supabase.from("customers").delete { filter { eq("id", toDelete.id ?: "") } }; onRefresh(); showEditDialog = false } catch (e: Exception) { } } },
-            onAddAppointment = { c, date, appt -> scope.launch { try { supabase.from("appointments").insert(appt); onRefresh() } catch(e: Exception) {} } }
-        ) 
+    if (showEdit) {
+        CustomerEditDialog(selectedC, actions, onDismiss = { showEdit = false }, 
+            onConfirm = { updated -> scope.launch { try { if (updated.id == null) supabase.from("customers").insert(updated) else supabase.from("customers").update(updated) { filter { eq("id", updated.id ?: "") } }; onRefresh(); showEdit = false } catch (e: Exception) {} } }, 
+            onDelete = { toDelete -> scope.launch { try { supabase.from("customers").delete { filter { eq("id", toDelete.id ?: "") } }; onRefresh(); showEdit = false } catch (e: Exception) {} } },
+            onAddAppointment = { c, appt -> scope.launch { try { supabase.from("appointments").insert(appt); onRefresh() } catch(e: Exception){} } }
+        )
     }
 }
 
 @Composable
-fun CustomerCard(c: Customer, actions: PlatformActions, onClick: () -> Unit) {
-    val name = c.name ?: "Sin nombre"
-    Card(Modifier.fillMaxWidth().clickable { onClick() }, shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), border = BorderStroke(1.dp, Color(0xFFEEEEEE))) { 
-        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) { 
-            Box(Modifier.size(40.dp).background(Color(0xFF1A237E), CircleShape), contentAlignment = Alignment.Center) { Text(name.take(1).uppercase(), color = Color.White) }
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) { 
-                Text(name, fontWeight = FontWeight.Bold)
-                Text(c.phone ?: "", fontSize = 12.sp, color = Color.Gray) 
-            }
-            if (!actions.isDesktop) {
-                IconButton(onClick = { actions.sendWhatsApp(c.phone, "Hola...") }) { Icon(Icons.AutoMirrored.Filled.Send, null, tint = Color(0xFF2196F3)) }
-                IconButton(onClick = { actions.makeCall(c.phone) }) { Icon(Icons.Default.Call, null, tint = Color(0xFF4CAF50)) }
-            }
-        } 
-    }
-}
-
-@Composable
-fun CustomerEditDialog(customer: Customer?, actions: PlatformActions, onDismiss: () -> Unit, onConfirm: (Customer) -> Unit, onDelete: (Customer) -> Unit, onAddAppointment: (Customer, String, Appointment) -> Unit) {
+fun CustomerEditDialog(customer: Customer?, actions: PlatformActions, onDismiss: () -> Unit, onConfirm: (Customer) -> Unit, onDelete: (Customer) -> Unit, onAddAppointment: (Customer, Appointment) -> Unit) {
     var name by remember { mutableStateOf(customer?.name ?: "") }
     var phone by remember { mutableStateOf(customer?.phone ?: "") }
     var notes by remember { mutableStateOf(customer?.technical_notes ?: "") }
-    var habitualTreatment by remember { mutableStateOf(customer?.habitual_treatment ?: "") }
-    
+    var habitualT by remember { mutableStateOf(customer?.habitual_treatment ?: "") }
     val visits = remember { mutableStateListOf<Visit>() }
     val scope = rememberCoroutineScope()
-    var showAddApptDialog by remember { mutableStateOf(false) }
+    var showAddA by remember { mutableStateOf(false) }
 
     LaunchedEffect(customer) {
         if (customer != null) {
             try {
                 val res = supabase.from("visits").select { filter { eq("customer_id", customer.id ?: "") } }.decodeList<Visit>()
                 visits.clear(); visits.addAll(res.sortedByDescending { it.date ?: "" })
-            } catch (e: Exception) { }
+            } catch (e: Exception) {}
         }
     }
 
@@ -486,90 +364,80 @@ fun CustomerEditDialog(customer: Customer?, actions: PlatformActions, onDismiss:
         Column(Modifier.verticalScroll(rememberScrollState()).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) { 
             OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nombre Completo") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { Text("Teléfono") }, modifier = Modifier.fillMaxWidth())
-            
-            // Tratamiento Habitual (Nueva sección potenciada)
             Surface(color = Color(0xFFE8EAF6), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp)) {
-                    Text("Tratamiento Habitual", fontWeight = FontWeight.Bold, color = Color(0xFF1A237E), fontSize = 14.sp)
-                    BasicTextField(value = habitualTreatment, onValueChange = { habitualTreatment = it }, modifier = Modifier.fillMaxWidth().padding(top = 4.dp))
+                    Text("Tratamiento Habitual", fontWeight = FontWeight.Bold, color = Color(0xFF1A237E), fontSize = 13.sp)
+                    BasicTextField(value = habitualT, onValueChange = { habitualT = it }, modifier = Modifier.fillMaxWidth().padding(top = 4.dp))
                 }
             }
-
-            OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Notas Técnicas / Historial") }, modifier = Modifier.fillMaxWidth().height(100.dp)) 
-            
+            OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("Historial / Notas") }, modifier = Modifier.fillMaxWidth().height(80.dp)) 
             if (customer != null) {
-                Button(onClick = { showAddApptDialog = true }, Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A237E))) {
-                    Icon(Icons.Default.Event, null); Spacer(Modifier.width(8.dp)); Text("Agendar Cita Directa")
-                }
-                
-                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                Button(onClick = { showAddA = true }, Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A237E))) { Icon(Icons.Default.Event, null); Spacer(Modifier.width(8.dp)); Text("Agendar Cita Directa") }
+                HorizontalDivider(Modifier.padding(vertical = 4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Registros de Visitas", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                    Button(onClick = {
-                        scope.launch {
-                            val todayStr = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
-                            val newVisit = Visit(customer_id = customer.id, date = todayStr, treatment = "Tratamiento de hoy", notes = "")
-                            try { 
-                                supabase.from("visits").insert(newVisit)
-                                val res = supabase.from("visits").select { filter { eq("customer_id", customer.id ?: "") } }.decodeList<Visit>()
-                                visits.clear(); visits.addAll(res.sortedByDescending { it.date ?: "" })
-                            } catch(e: Exception) {}
-                        }
-                    }, shape = RoundedCornerShape(8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00BFA5))) { Text("+ Registro Hoy", fontSize = 11.sp) }
+                    Text("Registros Diarios", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    Button(onClick = { scope.launch { val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
+                        val newV = Visit(customer_id = customer.id, date = today, treatment = "Nuevo Tratamiento", notes = "")
+                        try { supabase.from("visits").insert(newV); val res = supabase.from("visits").select { filter { eq("customer_id", customer.id ?: "") } }.decodeList<Visit>(); visits.clear(); visits.addAll(res.sortedByDescending { it.date ?: "" }) } catch(e: Exception){} } }, shape = RoundedCornerShape(8.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00BFA5))) { Text("+ Registro", fontSize = 10.sp) }
                 }
-                
-                visits.forEach { visit ->
-                    Card(Modifier.fillMaxWidth().padding(vertical = 4.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))) {
-                        Column(Modifier.padding(12.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(visit.date ?: "", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.Gray)
-                                Spacer(Modifier.weight(1f))
-                                IconButton(onClick = {
-                                    scope.launch {
-                                        try {
-                                            supabase.from("visits").delete { filter { eq("id", visit.id ?: "") } }
-                                            visits.remove(visit)
-                                        } catch(e: Exception) {}
-                                    }
-                                }, Modifier.size(24.dp)) { Icon(Icons.Default.Delete, null, Modifier.size(16.dp), tint = Color.Red.copy(0.4f)) }
-                            }
-                            var vTreatment by remember { mutableStateOf(visit.treatment ?: "") }
-                            Text("Tratamiento aplicado:", fontSize = 11.sp, color = Color.Gray)
-                            BasicTextField(value = vTreatment, onValueChange = { vTreatment = it }, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp))
-                            TextButton(onClick = {
-                                scope.launch { try { supabase.from("visits").update(mapOf("treatment" to vTreatment)) { filter { eq("id", visit.id ?: "") } } } catch(e: Exception) {} }
-                            }, Modifier.align(Alignment.End).height(30.dp)) { Text("Guardar Registro", fontSize = 10.sp) }
+                visits.forEach { v ->
+                    Card(Modifier.fillMaxWidth().padding(vertical = 2.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))) {
+                        Column(Modifier.padding(10.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) { Text(v.date ?: "", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.Gray); Spacer(Modifier.weight(1f))
+                                IconButton(onClick = { scope.launch { try { supabase.from("visits").delete { filter { eq("id", v.id ?: "") } }; visits.remove(v) } catch(e: Exception){} } }, Modifier.size(20.dp)) { Icon(Icons.Default.Delete, null, tint = Color.Red.copy(0.3f)) } }
+                            var vT by remember { mutableStateOf(v.treatment ?: "") }
+                            BasicTextField(value = vT, onValueChange = { vT = it }, modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp))
+                            TextButton(onClick = { scope.launch { try { supabase.from("visits").update(mapOf("treatment" to vT)) { filter { eq("id", v.id ?: "") } } } catch(e: Exception){} } }, Modifier.align(Alignment.End).height(24.dp)) { Text("Guardar Registro", fontSize = 9.sp) }
                         }
                     }
                 }
-                TextButton(onClick = { onDelete(customer) }, modifier = Modifier.fillMaxWidth()) { Text("Eliminar Cliente definitivamente", color = Color.Red, fontSize = 12.sp) }
+                TextButton(onClick = { onDelete(customer) }, modifier = Modifier.fillMaxWidth()) { Text("Eliminar Cliente", color = Color.Red, fontSize = 11.sp) }
             }
         } 
-    }, confirmButton = { Button(onClick = { if(name.isNotEmpty()) { onConfirm(Customer(id = customer?.id, name = name, phone = phone, last_visit = "Hoy", technical_notes = notes, habitual_treatment = habitualTreatment)); onDismiss() } }) { Text("Guardar Cambios") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cerrar") } })
+    }, confirmButton = { Button(onClick = { if(name.isNotEmpty()) { onConfirm(Customer(id = customer?.id, name = name, phone = phone, last_visit = "Hoy", technical_notes = notes, habitual_treatment = habitualT)); onDismiss() } }) { Text("Guardar Todo") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cerrar") } })
+    if (showAddA && customer != null) { ManualAppointmentDialog(Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString(), initialName = customer.name ?: "", initialPhone = customer.phone ?: "", onDismiss = { showAddA = false }, onConfirm = { a -> onAddAppointment(customer, a); showAddA = false }) }
+}
 
-    if (showAddApptDialog && customer != null) {
-        ManualAppointmentDialog(
-            date = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString(),
-            initialName = customer.name ?: "",
-            initialPhone = customer.phone ?: "",
-            onDismiss = { showAddApptDialog = false },
-            onConfirm = { appt -> onAddAppointment(customer, appt.date ?: "", appt); showAddApptDialog = false }
-        )
+@Composable
+fun UpcomingAppointmentsScreen(appointments: List<Appointment>, actions: PlatformActions, onRefresh: () -> Unit, onOpenDrawer: () -> Unit) {
+    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+    val futureAppointments = appointments.filter { 
+        val d = try { LocalDate.parse(it.date ?: "") } catch(e:Exception) { null }
+        d != null && d >= today && it.client_name != "BLOQUEADO"
+    }.sortedWith(compareBy({ it.date ?: "" }, { it.time ?: "" }))
+    val grouped = futureAppointments.groupBy { it.date }
+
+    Column(Modifier.fillMaxSize().background(Color(0xFFF8F9FB))) {
+        HeaderPremium("Avisos", "Próximos recordatorios", actions, onMenuClick = onOpenDrawer)
+        LazyColumn(Modifier.padding(16.dp)) {
+            grouped.forEach { (date, appts) ->
+                item { Text(date ?: "", fontWeight = FontWeight.Bold, color = Color.Gray, fontSize = 12.sp, modifier = Modifier.padding(8.dp)) }
+                items(appts) { appt ->
+                    Surface(shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, Color(0xFFF0F0F0)), modifier = Modifier.padding(vertical = 4.dp)) {
+                        Row(Modifier.padding(12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text(appt.time ?: "", fontWeight = FontWeight.Bold, modifier = Modifier.width(60.dp))
+                            Column(Modifier.weight(1f)) { Text(appt.client_name ?: "", fontWeight = FontWeight.Bold); Text(appt.service ?: "", fontSize = 12.sp) }
+                            IconButton(onClick = { actions.sendWhatsApp(appt.phone, "Recordatorio...") }) { Icon(Icons.AutoMirrored.Filled.Chat, null, tint = Color(0xFF25D366)) }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
 @Composable
 fun ManualAppointmentDialog(date: String, initialName: String = "", initialPhone: String = "", onDismiss: () -> Unit, onConfirm: (Appointment) -> Unit) {
-    var name by remember { mutableStateOf(initialName) }; var phone by remember { mutableStateOf(initialPhone) }; var service by remember { mutableStateOf("Servicio") }; var time by remember { mutableStateOf("09:00") }
+    var n by remember { mutableStateOf(initialName) }; var p by remember { mutableStateOf(initialPhone) }; var s by remember { mutableStateOf("Servicio") }; var t by remember { mutableStateOf("09:00") }
     val hours = listOf("09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00")
     AlertDialog(onDismissRequest = onDismiss, title = { Text("Nueva Cita") }, text = {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nombre") })
-            OutlinedTextField(value = phone, onValueChange = { phone = it }, label = { Text("Teléfono") })
-            OutlinedTextField(value = service, onValueChange = { service = it }, label = { Text("Servicio") })
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { items(hours) { h -> FilterChip(selected = time == h, onClick = { time = h }, label = { Text(h) }) } }
+            OutlinedTextField(value = n, onValueChange = { n = it }, label = { Text("Nombre") })
+            OutlinedTextField(value = p, onValueChange = { p = it }, label = { Text("Teléfono") })
+            OutlinedTextField(value = s, onValueChange = { s = it }, label = { Text("Servicio") })
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { items(hours) { h -> FilterChip(selected = t == h, onClick = { t = h }, label = { Text(h) }) } }
         }
-    }, confirmButton = { Button(onClick = { if(name.isNotEmpty()) { onConfirm(Appointment(date = date, time = time, client_name = name, service = service, phone = phone)); onDismiss() } }) { Text("Anotar") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } })
+    }, confirmButton = { Button(onClick = { if(n.isNotEmpty()) { onConfirm(Appointment(date = date, time = t, client_name = n, service = s, phone = p)); onDismiss() } }) { Text("Anotar") } }, dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } })
 }
 
 @Composable
