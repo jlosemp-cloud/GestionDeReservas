@@ -18,13 +18,17 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Package Windows EXE
-        run: ./gradlew :desktop:packageReleaseExe
+        run: ./gradlew :desktop:packageExe
         env:
           GRADLE_OPTS: -Dorg.gradle.java.home=${{ env.JAVA_HOME }}
+
+      - name: List and Find EXE (Debug)
+        run: Get-ChildItem -Path desktop/build/ -Filter *.exe -Recurse
+        shell: pwsh
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: GestionDeReservas-Windows
-          path: desktop/build/compose/binaries/main/exe/**
-          if-no-files-found: warn
+          path: desktop/build/compose/binaries/**/*.exe
+          if-no-files-found: error
