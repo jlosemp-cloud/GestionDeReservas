@@ -18,7 +18,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build App and Installer
-        run: ./gradlew :desktop:packageExe :desktop:packageApp
+        run: ./gradlew :desktop:packageReleaseExe :desktop:package
         env:
           GRADLE_OPTS: -Dorg.gradle.java.home=${{ env.JAVA_HOME }}
 
