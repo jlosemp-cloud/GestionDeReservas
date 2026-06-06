@@ -6,7 +6,7 @@ plugins {
 }
 
 kotlin {
-    jvm() // Usamos el target JVM estándar
+    jvm() // Usa src/jvmMain
     
     sourceSets {
         val jvmMain by getting {
@@ -31,7 +31,11 @@ compose.desktop {
     application {
         mainClass = "MainKt"
         nativeDistributions {
-            targetFormats(org.jetbrains.compose.desktop.application.dsl.TargetFormat.Exe)
+            // Añadimos AppImage para tener la versión PORTABLE (carpeta)
+            targetFormats(
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.Exe,
+                org.jetbrains.compose.desktop.application.dsl.TargetFormat.AppImage
+            )
             packageName = "GestionDeReservas"
             packageVersion = "1.0.0"
             includeAllModules = true

@@ -17,13 +17,20 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build App and Installer
+      - name: Build App
         run: ./gradlew :desktop:packageReleaseExe :desktop:package
         env:
           GRADLE_OPTS: -Dorg.gradle.java.home=${{ env.JAVA_HOME }}
 
       - name: Zip Portable Version
-        run: Compress-Archive -Path desktop/build/compose/binaries/main/app/* -DestinationPath GestionDeReservas_Portable.zip
+        run: |
+          $AppPath = Get-ChildItem -Path "desktop/build/compose/binaries" -Filter "app" -Recurse | Select-Object -First 1
+          if ($AppPath) {
+            Compress-Archive -Path "$($AppPath.FullName)\*" -DestinationPath GestionDeReservas_Portable.zip
+          } else {
+            Write-Error "No se encontro la carpeta de la aplicacion portable"
+            exit 1
+          }
         shell: pwsh
 
       - name: Upload Artifacts
@@ -31,6 +38,6 @@ jobs:
         with:
           name: GestionDeReservas-Windows
           path: |
-            desktop/build/compose/binaries/main/exe/*.exe
+            desktop/build/compose/binaries/**/*.exe
             GestionDeReservas_Portable.zip
           if-no-files-found: error
